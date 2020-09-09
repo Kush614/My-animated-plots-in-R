@@ -1,9 +1,44 @@
+library(tidyverse)
+library(sf)
+library(tmap)
+
+simp_sf <- readRDS("simp_sf.rds")
+
+states_sf <- simp_sf %>%
+filter(!type == "Union Territory")
+
+proj_sf <- simp_sf %>%
+st_transform(crs = 24343) %>%
+mutate(
+CENTROID = purrr::map(geometry, st_centroid),
+COORDS = purrr::map(CENTROID, st_coordinates),
+COORDS_X = purrr::map_dbl(COORDS, 1),
+COORDS_Y = purrr::map_dbl(COORDS, 2)
+)
+pc_gdp_anim <- simp_sf %>%
+filter(!state_ut %in% c("Lakshadweep", "Andaman & Nicobar Islands")) %>%
+mutate(
+log_pc_usd = log10(per_capita_gdp_usd),
+region_fac = factor(region, levels = c("Northern", "Western", "Southern",
+"Central", "Eastern", "Northeastern"))
+) %>%
+tm_shape() +
+tm_fill(col = 'log_pc_usd', title = 'Per Capita GDP (USD$)',
+palette = "viridis",
+labels = my_labels) +
+tm_borders(col = "white") +
+tm_facets(along = "region_fac", free.coords = FALSE) +
+tm_layout(main.title.size = 1)
+
+tmap_animation(pc_gdp_anim, filename = "pc_gdp_anim.gif",
+delay = 200, restart.delay = 200)
+
 library(gganimate)
 states <- c(
-  'Original',
-  'Continuous Cartogram Weighted by Nominal GDP',
-  'Dorling Cartogram Weighted by Nominal GDP',
-  'Hexagonal Tiling'
+'Original',
+'Continuous Cartogram Weighted by Nominal GDP',
+'Dorling Cartogram Weighted by Nominal GDP',
+'Hexagonal Tiling'
 )
 
 # cartograms, hexbin created in previous lesson
@@ -14,19 +49,19 @@ dorling_gdp_sf$state <- states[3]
 hex_result$state <- states[4]
 
 nom_gdp_all <- rbind(proj_sf,
-                     ccart_gdp_sf[, names(proj_sf)],
-                     dorling_gdp_sf[, names(proj_sf)],
-                     hex_result[, names(proj_sf)])
+ccart_gdp_sf[, names(proj_sf)],
+dorling_gdp_sf[, names(proj_sf)],
+hex_result[, names(proj_sf)])
 nom_gdp_all$state <- factor(nom_gdp_all$state, levels = states)
 
 ggplot(nom_gdp_all) +
-  geom_sf(aes(fill = nominal_gdp_usd / 1e9, group = state_ut)) +
-  scale_fill_viridis_c(labels = scales::dollar) +
-  coord_sf(datum = NA) +
-  theme_void() +
-  theme(legend.position = 'bottom',
-        legend.text = element_text(angle = 30, hjust = 1)) +
-  labs(title = 'Showing {closest_state}',
-       fill = 'Nominal GDP (USD$ Billion)') +
-  transition_states(state, 2, 1)
+geom_sf(aes(fill = nominal_gdp_usd / 1e9, group = state_ut)) +
+scale_fill_viridis_c(labels = scales::dollar) +
+coord_sf(datum = NA) +
+theme_void() +
+theme(legend.position = 'bottom',
+legend.text = element_text(angle = 30, hjust = 1)) +
+labs(title = 'Showing {closest_state}',
+fill = 'Nominal GDP (USD$ Billion)') +
+transition_states(state, 2, 1)
 anim_save("nom_gdp_anim.gif")
