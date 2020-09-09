@@ -1,0 +1,32 @@
+library(gganimate)
+states <- c(
+  'Original',
+  'Continuous Cartogram Weighted by Nominal GDP',
+  'Dorling Cartogram Weighted by Nominal GDP',
+  'Hexagonal Tiling'
+)
+
+# cartograms, hexbin created in previous lesson
+
+proj_sf$state <- states[1]
+ccart_gdp_sf$state <- states[2]
+dorling_gdp_sf$state <- states[3]
+hex_result$state <- states[4]
+
+nom_gdp_all <- rbind(proj_sf,
+                     ccart_gdp_sf[, names(proj_sf)],
+                     dorling_gdp_sf[, names(proj_sf)],
+                     hex_result[, names(proj_sf)])
+nom_gdp_all$state <- factor(nom_gdp_all$state, levels = states)
+
+ggplot(nom_gdp_all) +
+  geom_sf(aes(fill = nominal_gdp_usd / 1e9, group = state_ut)) +
+  scale_fill_viridis_c(labels = scales::dollar) +
+  coord_sf(datum = NA) +
+  theme_void() +
+  theme(legend.position = 'bottom',
+        legend.text = element_text(angle = 30, hjust = 1)) +
+  labs(title = 'Showing {closest_state}',
+       fill = 'Nominal GDP (USD$ Billion)') +
+  transition_states(state, 2, 1)
+anim_save("nom_gdp_anim.gif")
