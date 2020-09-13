@@ -1,0 +1,31 @@
+library(ggplot2)
+library(gganimate)
+theme_set(theme_bw())
+library(gapminder)
+
+View(gapminder)
+p<-ggplot(gapminder, aes(gdpPercap, lifeExp, size=pop, colour=country))+
+  geom_point(aplha=0.7)+
+  scale_color_manual(values=country_colors)+
+  scale_size(range=c(2, 15))+
+  scale_x_log10()+
+  facet_wrap(~continent)+
+  theme(legend.position = 'none')+
+  theme(axis.text = element_text(size = 20),
+        axis.title = element_text(size=22, face="bold"),
+        strip.text = element_text(size=20))
+p
+
+
+ 
+
+p2<-p+
+   labs(title = 'Year: {frame_time}', x='GDP per capita', y='life
+expectancy')+
+  transition_time(year)+
+  theme(plot.title = element_text(size = 23, face="bold"))
+
+animate(p2, nframes=120,
+        renderer = gifski_renderer("percapita_gdp_2.gif"),
+        height = 700, width=1000)
+  
